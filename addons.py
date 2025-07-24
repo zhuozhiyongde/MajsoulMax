@@ -5,6 +5,7 @@ import os
 vendor_dir = os.path.join(os.path.dirname(__file__), 'vendor')
 sys.path.insert(0, vendor_dir)
 
+import base64
 import liqi_new
 import asyncio
 from mitmproxy.tools.dump import DumpMaster
@@ -52,6 +53,10 @@ except:
         如需使用，请修改./config/settings.yaml文件\n
         修改完成后重新启动即可\n
         ''')
+
+# 代理认证
+if 'proxy_auth' not in SETTINGS:
+    SETTINGS['proxy_auth'] = {'username': '', 'password': ''}
 
 
 MOD_ENABLE = SETTINGS['plugin_enable']['mod']
@@ -132,8 +137,51 @@ class WebSocketAddon:
                     logger.info(f'已发送：{result}')
 
 
+class HttpAuthAddon:
+    def http_connect(self, flow: http.HTTPFlow):
+        username = os.environ.get('PROXY_USERNAME') or SETTINGS['proxy_auth']['username']
+        password = os.environ.get('PROXY_PASSWORD') or SETTINGS['proxy_auth']['password']
+        if username and password:
+            if flow.request.headers.get('Proxy-Authorization') is None:
+                flow.response = http.Response.make(
+                    407,
+                    b'',
+                    {
+                        'Proxy-Authenticate': 'Basic realm="mitmproxy"',
+                    },
+                )
+                return
+            auth = flow.request.headers.get('Proxy-Authorization').split()
+            if auth[0] != 'Basic':
+                flow.response = http.Response.make(
+                    407,
+                    b'',
+                    {
+                        'Proxy-Authenticate': 'Basic realm="mitmproxy"',
+                    },
+                )
+                return
+            try:
+                auth = base64.b64decode(auth[1]).decode().split(':')
+                if auth[0] != username or auth[1] != password:
+                    flow.response = http.Response.make(
+                        401,
+                        b'Authentication failed',
+                        {},
+                    )
+                    return
+            except:
+                flow.response = http.Response.make(
+                    401,
+                    b'Authentication failed',
+                    {},
+                )
+                return
+
+
 addons = [
-    WebSocketAddon()
+    WebSocketAddon(),
+    HttpAuthAddon()
 ]
 
 
@@ -143,7 +191,7 @@ async def start_mitm():
     # 创建 DumpMaster，类似于 mitmdump 的功能
     master = DumpMaster(opts)
     # 加载自定义插件
-    master.addons.add(WebSocketAddon())
+    master.addons.add(*addons)
     try:
         # 启动 mitmproxy
         await master.run()
