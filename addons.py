@@ -1,3 +1,10 @@
+import sys
+import os
+
+# Add vendor directory to module search path
+vendor_dir = os.path.join(os.path.dirname(__file__), 'vendor')
+sys.path.insert(0, vendor_dir)
+
 import liqi_new
 import asyncio
 from mitmproxy.tools.dump import DumpMaster
