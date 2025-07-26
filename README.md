@@ -1,6 +1,6 @@
 # MajsoulMax
 
-本项目是 [MajsoulMax](https://github.com/Avenshy/MajsoulMax) 的一个修改版，主要为了适配 [Majsoul Helper](https://github.com/zhuozhiyongde/majsoul-helper) 项目的容器化部署。
+本项目是 [MajsoulMax](https://github.com/Avenshy/MajsoulMax) 的一个修改版，主要为了适配 [Majsoul Helper](https://github.com/zhuozhiyongde/MajsoulHelper) 项目的容器化部署。
 
 ## ✨ 核心修改
 
